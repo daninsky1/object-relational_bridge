@@ -9,29 +9,6 @@ enum ColumnType {
     VARCHAR
 };
 
-template<typename T>
-class Column {
-public:
-    Column(std::string n, ColumnType t)
-        : name{n}
-        , type{t} {
-    }
-    T get_value() {
-        return T;
-    }
-    
-    void set_value(T v) {
-        value = v;
-    }
-private:
-    std::string name;
-    ColumnType type;
-    int size;
-    int precision;
-    int scale;
-    bool primary_key;
-    bool not_null;
-};
 
 class ColumnInterface {
 public:
@@ -49,24 +26,22 @@ public:
     }
 };
 
-class ColumnInteger : public ColumnInterface {
+template<typename T>
+class Column : public ColumnInterface {
 public:
-    uint64_t default_value;
-    uint64_t value;
-
-    ColumnInteger(std::string name, ColumnType type)
-        : ColumnInterface(name, type) {
+    Column(std::string n, ColumnType t)
+        : ColumnInterface(n, t) {
     }
-};
-
-class ColumnString : public ColumnInterface {
-public:
-    std::string default_value;
-    std::string value;
-
-    ColumnString(std::string name, ColumnType type)
-        : ColumnInterface(name, type) {
+    T get_value() {
+        return value;
     }
+    
+    void set_value(T v) {
+        value = v;
+    }
+private:
+    T value;
+    T default_value;
 };
 
 class Entity {
@@ -74,23 +49,35 @@ public:
     virtual std::vector<ColumnInterface*> get_columns() = 0;
 };
 
-template<typename T>
-class Repository {
-public:
-    Repository() {
+class Custumer : public Entity {
+    Column<int> custumer_id{"custumer_id", ColumnType::INTEGER};
+    Column<std::string> first_name{"first_name", ColumnType::VARCHAR};
+    
+    std::vector<ColumnInterface*> get_columns() override {
+        std::vector<ColumnInterface*> r;
+        r.push_back(&custumer_id);
+        r.push_back(&first_name);
+        return r;
     }
 };
 
-class CustumerEntity : public Entity {
-    ColumnInteger custumer_id{"custumer_id", ColumnType::INTEGER};
-    ColumnString first_name{"first_name", ColumnType::VARCHAR};
+template<typename T>
+class Repository {
+public:
+    Repository() { }
+    
 };
 
-class Custumer {
-    Column<int> custumer_id{"custumer_id", ColumnType::INTEGER};
-    Column<std::string> first_name{"first_name", ColumnType::VARCHAR};
+template<uint32_t N>
+struct binary {
+    static uint32_t const value = binary<N/10>::value << 1 | N%10;
+};
+
+template<>
+struct binary<0> {
+    static uint32_t const value = 0;
 };
 
 int main() {
-    
+    std::cout << binary<10>::value;
 }

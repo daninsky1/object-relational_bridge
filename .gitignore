@@ -1,3 +1,4 @@
 .vscode/
-subprojects/
 car_company_database/
+subprojects/*
+!subprojects/sqlite3.wrap
