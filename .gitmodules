@@ -1,0 +1,3 @@
+[submodule "car_company_database"]
+	path = car_company_database
+	url = https://github.com/dtaivpp/car_company_database
