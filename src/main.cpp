@@ -5,29 +5,45 @@
 #include <string.h>
 #include <sqlite3.h>
 
+struct ResultSet {
+    char** result;
+    int n_row;
+    int n_col;
+    char *errmgs;
+};
+
 class Database {
     // TODO: Detalhes de implementação do banco de dados
 public:
     Database() {
-        int err = sqlite3_open(filename, db_handle);
-        if (err) {
+        int err = sqlite3_open_v2(filename, &db_handle, SQLITE_OPEN_READWRITE, NULL);
+        if (err != SQLITE_OK) {
+            std::cout << sqlite3_errmsg(db_handle) << '\n';
             exit(1);
+        } else {
+            std::cout << "Successufully opened database.\n";
         }
     }
     
-    void execute(const char* sql_stmt) {
+    ResultSet execute(const char* sql_stmt) {
+        std::cout << sql_stmt << '\n';
         sqlite3_stmt**  stmt;
         const char** tail;
-        sqlite3_prepare(*db_handle, sql_stmt, strlen(sql_stmt), stmt, tail);
-        if (!SQLITE_OK) {
-            std::cerr << "Erro ao executar SQL.\n";
-            return;
-        }
-        sqlite3_prepare(*db_handle);
+        //sqlite3_prepare(*db_handle, sql_stmt, strlen(sql_stmt), stmt, tail);
+        //sqlite3_step(*stmt);
+        char** result_set;
+        char *errmgs;
+        int n_row;
+        int n_col;
+        int err = sqlite3_get_table(db_handle, sql_stmt, &result_set, &n_row, &n_col, &errmgs);
+        std::cout << sqlite3_errstr(err) << '\n';
+        //for (int i = 0; i < n_row * n_col; i++) {
+        //    std::cout << result_set[i] << '\n';
+        //}
+        return ResultSet{result_set, n_row, n_col, errmgs};
     }
-    
-    static sqlite3** db_hanle
-    constexpr static const char* filename = "Car_Database.db";
+    sqlite3* db_handle;
+    const char* filename = "../car_company_database/Car_Database.db";
 };
 
 enum ColumnType {
@@ -51,6 +67,9 @@ public:
     Column(std::string n, ColumnType t)
         : ColumnInterface{.name = n, .type = t} {
     }
+    Column(ColumnInterface col)
+        : ColumnInterface{col} {
+    }
     T get_value() {
         return value;
     }
@@ -73,8 +92,8 @@ public:
 class Custumer : public Entity {
 public:
     Custumer()
-    : Entity{"Custumer"} { }
-    Column<int> custumer_id{"custumer_id", ColumnType::INTEGER};
+    : Entity{"Customers"} { }
+    Column<int> custumer_id{ColumnInterface{.name = "custumer_id", .type = ColumnType::INTEGER}};
     Column<std::string> first_name{"first_name", ColumnType::VARCHAR};
     Column<std::string> last_name{"last_name", ColumnType::VARCHAR};
     Column<std::string> gender{"gender", ColumnType::VARCHAR};
@@ -90,8 +109,15 @@ template<typename T>
 class Repository {
     static_assert(std::is_base_of<Entity, T>::value, "Repository require an Entity type");
 public:
+    Repository() {
+        
+    }
     std::string findById() {
         std::string stmt = "SELECT * FROM " + entity.table_name + ';';
+        ResultSet rs = database.execute(stmt.c_str());
+        for (int i = 0; i < rs.n_row * rs.n_col; i++) {
+            std::cout << rs.result[i] << '\n';
+        }
         return stmt;
     }
     std::string findBy(ColumnInterface column) {
@@ -100,16 +126,11 @@ public:
         return stmt;
     }
     T entity;
-    static Database database;
+    Database database{};
 };
 
 int main() {
     Custumer custumer;
     Repository<Custumer> custumer_dao;
-    std::cout << custumer_dao.findById() << '\n';
-    std::cout << custumer_dao.findBy(custumer.first_name) << '\n';
-    std::cout << custumer_dao.findBy(custumer.last_name) << '\n';
-    for (auto column : custumer.columns) {
-        std::cout << column->name << '\n';
-    }
+    custumer_dao.findById();
 }
